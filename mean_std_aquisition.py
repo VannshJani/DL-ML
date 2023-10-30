@@ -1,8 +1,7 @@
 import torch
 from astra.torch.al.aquisition.base import EnsembleAcquisition
 from astra.torch.al.aquisition.base import MCAcquisition
-
-
+# Ensemble and MC strategy for producing different model parameters
 
     
 # maximum mean standard deviation aquisition function
