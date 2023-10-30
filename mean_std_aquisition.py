@@ -1,29 +1,18 @@
 import torch
 from astra.torch.al.aquisition.base import EnsembleAcquisition
+from astra.torch.al.aquisition.base import MCAcquisition
 
 
 
     
 # maximum mean standard deviation aquisition function
-class Mean_std(EnsembleAcquisition):
+class Mean_std(EnsembleAcquisition,MCAcquisition):
     def acquire_scores(self, logits: torch.Tensor) -> torch.Tensor:
         # Mean-STD acquisition function
-        # (n_nets, pool_dim, n_classes) shape
-        n_models = logits.shape[0]
+        # (n_nets/n_mc_samples, pool_dim, n_classes) logits shape
         pool_num = logits.shape[1]
-        n_classes = logits.shape[2]
-        scores = torch.zeros(pool_num)
-        for idx in range(pool_num):
-            model_predictions = logits[:, idx, :] # (n_nets, n_classes) shape
-            standard_deviations = []
-            for class_idx in range(n_classes):
-                model_predictions_per_class = model_predictions[:, class_idx] # (n_nets) shape
-                e2 = torch.mean(model_predictions_per_class**2)
-                e1_2 = torch.mean(model_predictions_per_class)**2
-                std = torch.sqrt(e2 - e1_2)
-                standard_deviations.append(std)
-            standard_deviations = torch.tensor(standard_deviations)
-            mean_std = torch.mean(standard_deviations)
-            scores[idx] = mean_std
-
+        assert len(logits.shape) == 3, "logits shape must be 3-Dimensional"
+        std = torch.std(logits, dim=0) # standard deviation over model parameters, shape (pool_dim, n_classes)
+        scores = torch.mean(std, dim=1) # mean over classes, shape (pool_dim)
+        assert len(scores.shape) == 1 and scores.shape[0]==pool_num, "scores shape must be 1-Dimensional and must have length equal to that of pool dataset"
         return scores
